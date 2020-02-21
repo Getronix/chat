@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+    />
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+    <title>Document</title>
+    <style>
+      body {
+        margin-top: 100px;
+      }
+      #messageArea {
+        display: none;
+      }
+      .placeHolder {
+        color: #6c757d;
+        position: absolute;
+        left: 55px;
+        top: 110px;
+        background: white;
+        padding: 0 5px;
+        transition: top 0.2s;
+      }
+      .inputField {
+        width: 100%;
+        border-radius: 5px;
+        border: 2px solid #c2c2c2;
+        height: 45px;
+        padding: 0 10px;
+      }
+      .inputButton {
+        height: 45px;
+        margin-top: 30px;
+      }
+      .chat {
+        height: 400px;
+        border: 1px solid #c2c2c2;
+        border-radius: 10px;
+        overflow-y: scroll;
+      }
+      textarea {
+        resize: none;
+      }
+      #messageForm textarea {
+        margin-right: 10px;
+      }
+      .singleMessage {
+        height: auto;
+        width: auto;
+        padding: 7px 11px;
+        color: #ffffff;
+        border-radius: 5px;
+        margin: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="userFormArea" class="row justify-content-center">
+        <div class="col-5 card p-4">
+          <form id="userForm" class="card-body">
+            <div class="form-group">
+              <h3 class="text-muted mb-4">Please enter your username</h3>
+              <input type="text" class="inputField" id="username" />
+              <span class="placeHolder">username</span>
+              <br />
+              <input
+                type="submit"
+                class="btn btn-primary w-100 inputButton"
+                value="Log in"
+              />
+            </div>
+          </form>
+        </div>
+      </div>
+      <div id="messageArea" class="row">
+        <div class="col-4">
+          <div class="jumbotron h-100">
+            <h3>Online Users</h3>
+            <ul class="list-group" id="users"></ul>
+          </div>
+        </div>
+        <div class="col-8">
+          <div id="chat" class="chat"></div>
+          <form id="messageForm">
+            <div class="form-group mt-5 d-flex">
+              <textarea
+                class="form-control chatTextArea"
+                name=""
+                id="message"
+                rows="2"
+                maxlength="256"
+                placeholder="Whats on your mind?"
+                ;
+              ></textarea>
+              <input type="submit" class="btn btn-primary" value="Send" />
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <script>
+      $(function() {
+        var socket = io.connect();
+        var messageForm = $("#messageArea");
+        var message = $("#message");
+        var chat = $("#chat");
+        var userForm = $("#userForm");
+        var userFromArea = $("#userFormArea");
+        var users = $("#users");
+        var username = $("#username");
+
+        messageForm.submit(function(e) {
+          e.preventDefault();
+          socket.emit("send message", message.val());
+          message.val("");
+        });
+
+        socket.on("new message", function(data) {
+          chat.append(
+            `<div class="singleMessage" style="background: ${data.color}">${data.name}:&nbsp;${data.msg}<div>`
+          );
+          updateScroll();
+        });
+
+        userForm.submit(function(e) {
+          e.preventDefault();
+          socket.emit("new user", username.val(), function(data) {
+            if (data) {
+              userFromArea.hide();
+              messageForm.css({ display: "flex" });
+            }
+          });
+          username.val("");
+        });
+
+        socket.on("get users", function(data) {
+          var html = "";
+          for (i = 0; i < data.length; i++) {
+            html += `<li class="list-item">${data[i]}</li>`;
+          }
+          users.html(html);
+        });
+
+        username.focus(function(e) {
+          $(".placeHolder").css({ top: "89px" });
+        });
+
+        var scrolled = false;
+        function updateScroll() {
+          if (!scrolled) {
+            chat[0].scrollTop = chat[0].offsetHeight;
+          }
+        }
+
+        message.on("scroll", function() {
+          scrolled = true;
+        });
+
+        
+
+        $(document).on('keyup', function(e){
+          if(e.keyCode == 13){
+            messageForm.trigger('submit');
+          }
+        })
+      });
+    </script>
+  </body>
+</html>
